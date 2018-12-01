@@ -1,5 +1,5 @@
-package mammon
-
-const (
-	baseUrl = "https://api.robinhood.com/"
-)
+//package mammon
+//
+//const (
+//	baseUrl = "https://api.robinhood.com/"
+//)

@@ -19,10 +19,10 @@
 #   name = "github.com/x/y"
 #   version = "2.4.0"
 #
-# [prune]
-#   non-go = false
-#   go-tests = true
-#   unused-packages = true
+#[prune]
+#  non-go = false
+#  go-tests = true
+#  unused-packages = true
 
 
 [[constraint]]
@@ -32,3 +32,11 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/timpalpant/go-iex"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/mongodb/mongo-go-driver"
+  version = "0.0.18"
