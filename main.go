@@ -27,7 +27,14 @@ func main() {
 
 	db := database.Database()
 
+	//w := database.WatchlistHistory()
+	//
+	//w.Table.Foo()
+
+	//w.Foo()
+
 	fmt.Printf("%v\n", db)
+	//fmt.Printf("%v\n", items)
 
 	internal.Dial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
 
