@@ -42,6 +42,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:529f54d656a5240fc1af45f291eabbea6ce904659faac0fd0b0a4cd90c5c95f2"
   name = "github.com/mongodb/mongo-go-driver"
   packages = [
@@ -91,6 +99,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   digest = "1:40fdfd6ab85ca32b6935853bbba35935dcb1d796c8135efd85947566c76e662e"
   name = "github.com/xdg/scram"
@@ -108,9 +124,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f92f6956e4059f6a3efc14924d2dd58ba90da25cc57fe07ae3779ef2f5e0c5f2"
+  digest = "1:9ff2b9f8d4e47013a213b9ea0d850ed787c51f5eab2038842d82397ad85a19c1"
   name = "golang.org/x/crypto"
-  packages = ["pbkdf2"]
+  packages = [
+    "pbkdf2",
+    "ssh/terminal",
+  ]
   pruneopts = "UT"
   revision = "eb0de9b17e854e9b1ccd9963efafc79862359959"
 
@@ -143,6 +162,17 @@
   packages = ["semaphore"]
   pruneopts = "UT"
   revision = "42b317875d0fa942474b76e1b46a6060d720ae6e"
+
+[[projects]]
+  branch = "master"
+  digest = "1:191cccd950a4aeadb60306062f2bdc2f924d750d0156ec6c691b17211bfd7349"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "82a175fd1598e8a172e58ebdf5ed262bb29129e5"
 
 [[projects]]
   digest = "1:8029e9743749d4be5bc9f7d42ea1659471767860f0cdc34d37c3111bd308a295"
@@ -180,7 +210,9 @@
   analyzer-version = 1
   input-imports = [
     "astuart.co/go-robinhood",
+    "github.com/mongodb/mongo-go-driver/bson/objectid",
     "github.com/mongodb/mongo-go-driver/mongo",
+    "github.com/sirupsen/logrus",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

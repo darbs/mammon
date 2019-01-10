@@ -1,17 +1,11 @@
 package main
 
 import (
-	//"encoding/json"
-	//"io"
 	"fmt"
 	"os"
 	//"time"
-	//"net/http"
 
-	//"github.com/timpalpant/go-iex"
-	//"github.com/timpalpant/go-iex/iextp/tops"
-
-	"github.com/darbs/mammon/internal"
+	"github.com/darbs/mammon/internal/api"
 	"github.com/darbs/mammon/internal/database"
 )
 
@@ -34,9 +28,77 @@ func main() {
 	//w.Foo()
 
 	fmt.Printf("%v\n", db)
-	//fmt.Printf("%v\n", items)
+	rhapi, err  := api.RobinhoodDial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	if err != nil {
+		panic(err)
+	}
 
-	internal.Dial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	apiItems := rhapi.GetWatchlist()
+
+	//dbItems := make([]database.WatchlistItem, 0)
+	//dbItems := make(map[string]database.WatchlistItem, 0)
+	dbItems := make(map[string]database.WatchlistItem, 0)
+	watchlistTable := database.Table(database.WATCH_LIST_TABLE)
+	err = watchlistTable.GetItems(nil, &dbItems)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(apiItems)
+	fmt.Println(dbItems)
+
+	apiItemMap := make(map[string]database.WatchlistItem, 0)
+	for _, wli := range apiItems {
+		fmt.Printf("%v %v %v \n",wli.Country, wli.Symbol, wli.Name)
+		apiItemMap[wli.GetKey()] = wli
+
+		//if _, ok := exisingItems[ticker.Symbol]; ok {
+		//	fmt.Printf("Existing: %v\n", ticker.Symbol)
+		//	delete(exisingItems, ticker.Symbol)
+		//} else {
+		//	model := database.WatchlistItem{
+		//		Symbol: ticker.Symbol,
+		//		Name: ticker.Name,
+		//		Country: ticker.Country,
+		//		Date: time.Now().UTC(),
+		//	}
+
+			//exisingItems[model.GetMapKey()] = model
+		//}
+
+		//_, err := watchlistTable.AddItem(&wli)
+		//if err != nil {
+		//	//logger.Error(err)
+		//	panic("AHHHHHHH")
+		//}
+	}
+
+	//dbItemMap := make(map[string]database.WatchlistItem, 0)
+	//for _, wli := range dbItems {
+	//	fmt.Printf("%v %v %v \n", wli.Country, wli.Symbol, wli.Name)
+	//	dbItemMap[wli.GetKey()] = wli
+	//}
+
+	//for _, wli := range apiItems {
+	//	if _, ok := dbItemMap[wli.GetKey()]; !ok {
+	//		fmt.Printf("Existing: %v\n", ticker.Symbol)
+	//		delete(exisingItems, ticker.Symbol)
+	//	}
+	//}
+
+	//fmt.Printf("NEED TO ADD: %v\n", exisingItems)
+	//for _, value := range exisingItems {
+	//	res, err := w.AddItem(value)
+	//
+	//	if err != nil {
+	//		fmt.Errorf("Error add watchlist item %v: %v\n", watchlist.Name, err)
+	//		continue
+	//	}
+	//
+	//	fmt.Printf("Result: %v\n", res)
+	//}
+
+	//////////////////////
 
 	/*
 	client := iex.NewClient(&http.Client{})
