@@ -1,15 +1,12 @@
-package api
+package internal
 
 import (
 	"fmt"
 	"time"
-
-	//"time"
-
-	"github.com/darbs/mammon/internal/database"
-	log "github.com/sirupsen/logrus"
+	"errors"
 
 	"astuart.co/go-robinhood"
+	log "github.com/sirupsen/logrus"
 )
 
 var logger *log.Entry
@@ -31,7 +28,7 @@ func RobinhoodDial(username string, password string) (*rhConnection, error) {
 
 	if err != nil {
 		fmt.Printf("ERR: %v\n", err)
-		return nil, ErrApiConnect
+		return nil, errors.New(`failed to connect to api endpoint`)
 	}
 
 	return &rhConnection{
@@ -40,8 +37,8 @@ func RobinhoodDial(username string, password string) (*rhConnection, error) {
 }
 
 // TODO finish building out rh specific connection as well as genericising the api interface
-func (rhc *rhConnection) GetWatchlist() []database.WatchlistItem {
-	items := make([]database.WatchlistItem, 0)
+func (rhc *rhConnection) GetWatchlist() []WatchlistItem {
+	items := make([]WatchlistItem, 0)
 	watchlists, err := rhc.connection.GetWatchlists()
 	if err != nil {
 		fmt.Printf("ERR RETRIEVING WATCHLIST: %v\n", err)
@@ -56,9 +53,8 @@ func (rhc *rhConnection) GetWatchlist() []database.WatchlistItem {
 		}
 
 		for _, ticker := range tickers {
-			//fmt.Printf("watchlist item %v\n", ticker)
 			// todo set/collection?
-			items = append(items, database.WatchlistItem{
+			items = append(items, WatchlistItem{
 				Symbol:  ticker.Symbol,
 				Name:    ticker.Name,
 				Country: ticker.Country,

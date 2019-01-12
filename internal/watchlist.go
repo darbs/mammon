@@ -1,8 +1,10 @@
-package database
+package internal
 
 import (
 	"time"
 
+	"github.com/darbs/mammon/internal/database"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -32,4 +34,36 @@ func (w *WatchlistItem) BeforeUpdate() error {
 
 func (w *WatchlistItem) GetKey() string {
 	return w.Symbol
+}
+
+type WatchListTable struct {
+	*database.Table
+}
+
+func (t *WatchListTable) RemoveItemsBySymbol(symbols *[]string) (int64, error) {
+	query := bson.D{
+		{"symbol",
+			bson.D{
+				{"$in", *symbols},
+			},
+		},
+	}
+
+	//logger.Warnf("query: %v\n", query)
+	return t.RemoveItems(query)
+}
+
+//func (t *WatchListTable) AddItems(items []WatchlistItem) (error) {
+//	docs := make([]interface{}, len(items))
+//	for i := 0; i < len(items); i++ {
+//		d := items[i]
+//		docs[i] = &d
+//	}
+//	_, err := t.Collection().InsertMany(context.Background(), docs)
+//	return err
+//}
+
+func GetWatchlistTable() WatchListTable {
+	table := database.GetTable(WATCH_LIST_TABLE)
+	return WatchListTable{&table}
 }

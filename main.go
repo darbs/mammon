@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	//"time"
+	"time"
 
-	"github.com/darbs/mammon/internal/api"
+	"github.com/darbs/mammon/internal"
+	//"github.com/darbs/mammon/internal/collection"
 	"github.com/darbs/mammon/internal/database"
 )
 
@@ -16,29 +17,18 @@ func main() {
 		Username: os.Getenv("DB_USERNAME"),
 		Password: os.Getenv("DB_PASSWORD"),
 		Endpoint: os.Getenv("DB_ENDPOINT"),
-		Port: os.Getenv("DB_PORT"),
+		Port:     os.Getenv("DB_PORT"),
 	})
 
-	db := database.Database()
-
-	//w := database.WatchlistHistory()
-	//
-	//w.Table.Foo()
-
-	//w.Foo()
-
-	fmt.Printf("%v\n", db)
-	rhapi, err  := api.RobinhoodDial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
+	rhapi, err := internal.RobinhoodDial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
 	if err != nil {
 		panic(err)
 	}
 
 	apiItems := rhapi.GetWatchlist()
+	dbItems := make(map[string]internal.WatchlistItem, 0)
 
-	//dbItems := make([]database.WatchlistItem, 0)
-	//dbItems := make(map[string]database.WatchlistItem, 0)
-	dbItems := make(map[string]database.WatchlistItem, 0)
-	watchlistTable := database.Table(database.WATCH_LIST_TABLE)
+	watchlistTable := internal.GetWatchlistTable()
 	err = watchlistTable.GetItems(nil, &dbItems)
 	if err != nil {
 		panic(err)
@@ -47,56 +37,36 @@ func main() {
 	fmt.Println(apiItems)
 	fmt.Println(dbItems)
 
-	apiItemMap := make(map[string]database.WatchlistItem, 0)
+	apiItemMap := make(map[string]*internal.WatchlistItem, 0)
+	itemsToAdd := make([]internal.WatchlistItem, 0)
+
+	creationTime := time.Now()
 	for _, wli := range apiItems {
-		fmt.Printf("%v %v %v \n",wli.Country, wli.Symbol, wli.Name)
-		apiItemMap[wli.GetKey()] = wli
+		fmt.Printf("%v %v %v \n", wli.Country, wli.Symbol, wli.Name)
+		wli.UpdateAt = creationTime
+		wli.CreatedAt = creationTime
 
-		//if _, ok := exisingItems[ticker.Symbol]; ok {
-		//	fmt.Printf("Existing: %v\n", ticker.Symbol)
-		//	delete(exisingItems, ticker.Symbol)
-		//} else {
-		//	model := database.WatchlistItem{
-		//		Symbol: ticker.Symbol,
-		//		Name: ticker.Name,
-		//		Country: ticker.Country,
-		//		Date: time.Now().UTC(),
-		//	}
-
-			//exisingItems[model.GetMapKey()] = model
-		//}
-
-		//_, err := watchlistTable.AddItem(&wli)
-		//if err != nil {
-		//	//logger.Error(err)
-		//	panic("AHHHHHHH")
-		//}
+		if _, ok := dbItems[wli.Symbol]; !ok {
+			itemsToAdd = append(itemsToAdd, wli)
+		} else {
+			apiItemMap[wli.Symbol] = &wli
+		}
 	}
 
-	//dbItemMap := make(map[string]database.WatchlistItem, 0)
-	//for _, wli := range dbItems {
-	//	fmt.Printf("%v %v %v \n", wli.Country, wli.Symbol, wli.Name)
-	//	dbItemMap[wli.GetKey()] = wli
-	//}
+	itemsToDelete := make([]string, 0)
+	for _, wli := range dbItems {
+		if _, ok := apiItemMap[wli.Symbol]; !ok {
+			itemsToDelete = append(itemsToDelete, wli.Symbol)
+		}
+	}
 
-	//for _, wli := range apiItems {
-	//	if _, ok := dbItemMap[wli.GetKey()]; !ok {
-	//		fmt.Printf("Existing: %v\n", ticker.Symbol)
-	//		delete(exisingItems, ticker.Symbol)
-	//	}
-	//}
+	fmt.Printf("itemsToAdd %v\n", itemsToAdd)
+	addResult, err := watchlistTable.AddItems(&itemsToAdd)
+	fmt.Printf("Add result: %v\n", addResult)
 
-	//fmt.Printf("NEED TO ADD: %v\n", exisingItems)
-	//for _, value := range exisingItems {
-	//	res, err := w.AddItem(value)
-	//
-	//	if err != nil {
-	//		fmt.Errorf("Error add watchlist item %v: %v\n", watchlist.Name, err)
-	//		continue
-	//	}
-	//
-	//	fmt.Printf("Result: %v\n", res)
-	//}
+	fmt.Printf("itemsToDelete %v\n", itemsToDelete)
+	remResult, err := watchlistTable.RemoveItemsBySymbol(&itemsToDelete)
+	fmt.Printf("Remove result: %v\n", remResult)
 
 	//////////////////////
 
@@ -153,7 +123,6 @@ func main() {
 
 	fmt.Printf("total records: %v end date: %v\n", count, date)
 	*/
-
 
 	//quotes, err := client.GetTOPS([]string{"AAPL", "SPY"})
 	//if err != nil {

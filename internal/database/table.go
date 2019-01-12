@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	//"unsafe"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
@@ -12,12 +13,6 @@ import (
 )
 
 var logger *log.Entry
-
-type Model interface {
-	GetKey() string
-	PreAdd() error
-	PreUpdate() error
-}
 
 type CollectionObject interface {
 	GetKey() string
@@ -35,7 +30,7 @@ type DbCallbackBeforeUpdate interface {
 Todo
 have this as part of the attribute structure for desired models akin to gorm
  */
-type table struct {
+type Table struct {
 	Name     string
 	database mongo.Database
 }
@@ -44,22 +39,22 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{})
 	logger = log.WithFields(log.Fields{
 		"subject": "table",
-		"name":   "main",
+		"name":    "main",
 	})
 }
 
-func Table(name string) table {
-	return table{
+func GetTable(name string) Table {
+	return Table{
 		Name:     name,
 		database: Database(),
 	}
 }
 
-func (t *table) Collection() *mongo.Collection {
+func (t *Table) Collection() *mongo.Collection {
 	return t.database.Collection(t.Name) //configurable? multiple dbs?
 }
 
-func (t *table) AddItem(item interface{}) (*mongo.InsertOneResult, error) {
+func (t *Table) AddItem(item interface{}) (*mongo.InsertOneResult, error) {
 	if reflect.ValueOf(item).Kind() != reflect.Ptr {
 		return nil, ErrExpectingPointer
 	}
@@ -71,7 +66,38 @@ func (t *table) AddItem(item interface{}) (*mongo.InsertOneResult, error) {
 	return t.Collection().InsertOne(context.Background(), item)
 }
 
-func (t *table) GetItems(filter interface{}, destination interface{}) (error) {
+func (t *Table) AddItems(items interface{}) (*mongo.InsertManyResult, error) {
+	if reflect.ValueOf(items).Kind() != reflect.Ptr {
+		return nil, ErrExpectingPointer
+	}
+
+	// todo rethink cb logic
+	//if obj, ok := item.(DbCallbackBeforeAdd); ok {
+	//	obj.BeforeAdd()
+	//}
+
+	// todo may be perf concern for large sets due to the way mongo implements InsertMany
+	s := reflect.ValueOf(items).Elem()
+	docs := make([]interface{}, 0)
+	for i := 0; i < s.Len(); i++ {
+		obj := s.Index(i).Interface()
+		docs = append(docs, obj)
+	}
+
+	return t.Collection().InsertMany(context.Background(), docs)
+}
+
+func (t *Table) RemoveItem(filter interface{}) (int64, error) {
+	res, err := t.Collection().DeleteOne(context.Background(), filter)
+	return res.DeletedCount, err
+}
+
+func (t *Table) RemoveItems(filter interface{}) (int64, error) {
+	res, err := t.Collection().DeleteMany(context.Background(), filter)
+	return res.DeletedCount, err
+}
+
+func (t *Table) GetItems(filter interface{}, destination interface{}) (error) {
 	cur, err := t.Collection().Find(context.Background(), filter)
 
 	if err != nil {
@@ -80,7 +106,6 @@ func (t *table) GetItems(filter interface{}, destination interface{}) (error) {
 
 	dstv := reflect.ValueOf(destination)
 	//itemV := dstv.Elem()
-	logger.Warnf("DEST KIND: %v %v", dstv.Elem().Kind() == reflect.Slice, dstv.Elem().Kind() == reflect.Map)
 
 	//if dstv.IsNil() || dstv.Kind() != reflect.Ptr {
 	//	return errors.New("emit macho dwarf: elf header corrupted")
@@ -129,6 +154,7 @@ func (t *table) GetItems(filter interface{}, destination interface{}) (error) {
 		if err != nil {
 			// todo
 		}
+
 		/// dest
 		if dstv.Elem().Kind() == reflect.Slice {
 			if itemT.Kind() == reflect.Ptr {
@@ -139,6 +165,7 @@ func (t *table) GetItems(filter interface{}, destination interface{}) (error) {
 		} else {
 			if obj, ok := item.Interface().(CollectionObject); ok {
 				key := obj.GetKey()
+				logger.Warnf("key: %v\n", key)
 				slicev.SetMapIndex(reflect.ValueOf(key), item.Elem())
 			} else {
 				panic("AHH")
@@ -191,7 +218,7 @@ func inferFields(dest reflect.Value, raw bson.Raw) (error) {
 			fts := field.Type().String() // something something dynamic types
 			switch fts {
 			case "string":
-				rv = reflect.ValueOf(val.String())
+				rv = reflect.ValueOf(val.StringValue()) // TODO test this for quotes
 			case "objectid.ObjectID":
 				v := raw.Lookup("_id")
 				val = &v //raw.Lookup("_id")
