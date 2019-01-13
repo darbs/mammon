@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/darbs/mammon/internal"
-	//"github.com/darbs/mammon/internal/collection"
 	"github.com/darbs/mammon/internal/database"
+	"github.com/darbs/mammon/internal/task"
 )
 
 func main() {
@@ -20,55 +18,7 @@ func main() {
 		Port:     os.Getenv("DB_PORT"),
 	})
 
-	rhapi, err := internal.RobinhoodDial(os.Getenv("USERNAME"), os.Getenv("PASSWORD"))
-	if err != nil {
-		panic(err)
-	}
-
-	apiItems := rhapi.GetWatchlist()
-	dbItems := make(map[string]internal.WatchlistItem, 0)
-
-	watchlistTable := internal.GetWatchlistTable()
-	err = watchlistTable.GetItems(nil, &dbItems)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(apiItems)
-	fmt.Println(dbItems)
-
-	apiItemMap := make(map[string]*internal.WatchlistItem, 0)
-	itemsToAdd := make([]internal.WatchlistItem, 0)
-
-	creationTime := time.Now()
-	for _, wli := range apiItems {
-		fmt.Printf("%v %v %v \n", wli.Country, wli.Symbol, wli.Name)
-		wli.UpdateAt = creationTime
-		wli.CreatedAt = creationTime
-
-		if _, ok := dbItems[wli.Symbol]; !ok {
-			itemsToAdd = append(itemsToAdd, wli)
-		} else {
-			apiItemMap[wli.Symbol] = &wli
-		}
-	}
-
-	itemsToDelete := make([]string, 0)
-	for _, wli := range dbItems {
-		if _, ok := apiItemMap[wli.Symbol]; !ok {
-			itemsToDelete = append(itemsToDelete, wli.Symbol)
-		}
-	}
-
-	fmt.Printf("itemsToAdd %v\n", itemsToAdd)
-	addResult, err := watchlistTable.AddItems(&itemsToAdd)
-	fmt.Printf("Add result: %v\n", addResult)
-
-	fmt.Printf("itemsToDelete %v\n", itemsToDelete)
-	remResult, err := watchlistTable.RemoveItemsBySymbol(&itemsToDelete)
-	fmt.Printf("Remove result: %v\n", remResult)
-
-	//////////////////////
+	task.CheckWatchlist()
 
 	/*
 	client := iex.NewClient(&http.Client{})

@@ -5,36 +5,9 @@ import (
 
 	"github.com/darbs/mammon/internal/database"
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 const WATCH_LIST_TABLE = "Watchlist"
-
-type WatchlistItem struct {
-	Id        objectid.ObjectID `bson:"_id,omitempty" json:"Id"`
-	ListName  string            `bson:"listName" json:"listName"`
-	Symbol    string            `bson:"symbol" json:"symbol"`
-	Name      string            `bson:"name" json:"name"`
-	Country   string            `bson:"country" json:"country"`
-	Date      time.Time         `bson:"date" json:"date"`
-	CreatedAt time.Time         `bson:"createdAt" json:"date"`
-	UpdateAt  time.Time         `bson:"updatedAt" json:"date"`
-}
-
-func (w *WatchlistItem) BeforeAdd() error {
-	w.CreatedAt = time.Now()
-	w.UpdateAt = time.Now()
-	return nil
-}
-
-func (w *WatchlistItem) BeforeUpdate() error {
-	w.UpdateAt = time.Now()
-	return nil
-}
-
-func (w *WatchlistItem) GetKey() string {
-	return w.Symbol
-}
 
 type WatchListTable struct {
 	*database.Table
@@ -66,4 +39,55 @@ func (t *WatchListTable) RemoveItemsBySymbol(symbols *[]string) (int64, error) {
 func GetWatchlistTable() WatchListTable {
 	table := database.GetTable(WATCH_LIST_TABLE)
 	return WatchListTable{&table}
+}
+
+/*
+
+ */
+func SetWatchlist(items []WatchlistItem) error {
+	table := GetWatchlistTable()
+	creationTime := time.Now()
+	existing := make(map[string]WatchlistItem, 0)
+
+	dbItems := make(map[string]WatchlistItem, 0)
+	err := table.GetItems(nil, &dbItems)
+	if err != nil {
+		return err
+	}
+
+	// check which items need to get added
+	itemsToAdd := make([]WatchlistItem, 0)
+	for _, wli := range items {
+		if _, ok := dbItems[wli.Symbol]; !ok {
+			wli.UpdateAt = creationTime
+			wli.CreatedAt = creationTime
+			itemsToAdd = append(itemsToAdd, wli)
+		} else {
+			existing[wli.Symbol] = wli
+		}
+	}
+
+	// check which items need to get deleted
+	itemsToDelete := make([]string, 0)
+	for _, wli := range dbItems {
+		if _, ok := existing[wli.Symbol]; !ok {
+			itemsToDelete = append(itemsToDelete, wli.Symbol)
+		}
+	}
+
+	logger.Printf("itemsToAdd %v", itemsToAdd)
+	addResult, err := table.AddItems(&itemsToAdd)
+	logger.Printf("Add result: %v", addResult)
+	if err != nil {
+		return err
+	}
+
+	logger.Printf("itemsToDelete %v", itemsToDelete)
+	remResult, err := table.RemoveItemsBySymbol(&itemsToDelete)
+	logger.Printf("Remove result: %v", remResult)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -26,10 +26,6 @@ type DbCallbackBeforeUpdate interface {
 	BeforeUpdate() error
 }
 
-/*
-Todo
-have this as part of the attribute structure for desired models akin to gorm
- */
 type Table struct {
 	Name     string
 	database mongo.Database
@@ -76,7 +72,7 @@ func (t *Table) AddItems(items interface{}) (*mongo.InsertManyResult, error) {
 	//	obj.BeforeAdd()
 	//}
 
-	// todo may be perf concern for large sets due to the way mongo implements InsertMany
+	// todo may be perf concern for large sets due to the way mongo implements InsertMany and go
 	s := reflect.ValueOf(items).Elem()
 	docs := make([]interface{}, 0)
 	for i := 0; i < s.Len(); i++ {
@@ -143,16 +139,14 @@ func (t *Table) GetItems(filter interface{}, destination interface{}) (error) {
 		case reflect.Ptr:
 			objT := itemT.Elem()
 			if objT.Kind() != reflect.Struct {
-				// todo error
-				//return item, ErrExpectingMapOrStruct
-				fmt.Printf("ERRRORRRR \n")
+				return ErrExpectingMapOrStruct
 			}
 			item = reflect.New(objT)
 		}
 
 		err = inferFields(item, raw)
 		if err != nil {
-			// todo
+			return err
 		}
 
 		/// dest
@@ -165,16 +159,14 @@ func (t *Table) GetItems(filter interface{}, destination interface{}) (error) {
 		} else {
 			if obj, ok := item.Interface().(CollectionObject); ok {
 				key := obj.GetKey()
-				logger.Warnf("key: %v\n", key)
 				slicev.SetMapIndex(reflect.ValueOf(key), item.Elem())
 			} else {
-				panic("AHH")
+				logger.Errorf("object missing GetKey method: %v", obj)
 			}
 		}
-		/////
 	}
 	if err := cur.Err(); err != nil {
-		log.Printf("ERROR")
+		return err
 	}
 
 	dstv.Elem().Set(slicev)
